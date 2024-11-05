@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="styles.css">
+    <title>Jimmy Acosta</title>
+</head>
+<body>
+
+    <div id="spinner-overlay" class="spinner-overlay">
+        <div class="spinner"></div>
+    </div>
+
+    <div id="datos">
+        <h1>Lista de Vehiculoss</h1>
+        <table id="tablaDatos">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>modelo</th>
+                    <th>anoFabricacion</th>
+                    <th>velMax</th>
+                    <th>autonomia</th>
+                    <th>carga</th>
+                    <th>cantidadPuertas</th>
+                    <th>Asientos</th>
+                    <th>Modificar</th>
+                    <th>Eliminar</th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+        <button id="agregarElemento" class="agregarElemento">Agregar Elemento</button>
+    </div>
+
+    <div id="formularioABM" style="display: none;">
+        <h2 id="accionTitulo">Agregar Vehiculos</h2>
+        <form id="formABM">
+            <input id="modelo" placeholder="modelo">
+            <input id="anoFabricacion" placeholder="anoFabricacion">
+            <input id="velMax" placeholder="velMax" >
+            <input id="cantidadPuertas" placeholder="cantidadPuertas" >
+            <input id="asientos" placeholder="Asientos">
+            <input id="autonomia" placeholder="autonomia" >
+            <input id="carga" placeholder="carga" >
+            
+            <button id="aceptar" type="button">Aceptar</button>
+            <button type="button" onclick="cancelar()">Cancelar</button>
+        </form>
+    </div>
+
+    <script>
+        //Clases
+        class Vehiculos {
+            constructor(id, modelo, anoFabricacion, velMax) {
+                this.id = id;
+                this.modelo = modelo;
+                this.anoFabricacion = anoFabricacion;
+                this.velMax = velMax;
+            }
+
+            toString() {
+                return 'ID: ' + this.id + 
+                    ', modelo: ' + this.modelo + 
+                    ', anoFabricacion: ' + this.anoFabricacion + 
+                    ', velMax: ' + this.velMax;
+            }
+        }
+
+        class Camion extends Vehiculos {
+            constructor(id, modelo, anoFabricacion, velMax, carga, autonomia) {
+                super(id, modelo, anoFabricacion, velMax);
+                this.carga = carga;
+                this.autonomia = autonomia;
+            }
+
+            toString() {
+                return super.toString() + 
+                    ', carga: ' + this.carga + ', autonomia: ' + this.autonomia;
+            }
+        }
+
+        class Auto extends Vehiculos {
+            constructor(id, modelo, anoFabricacion, velMax, cantidadPuertas, asientos) {
+                super(id, modelo, anoFabricacion, velMax);
+                this.cantidadPuertas = cantidadPuertas;
+                this.asientos = asientos;
+            }
+
+            toString() {
+                return super.toString() + 
+                    ', cantidadPuertas: ' + this.cantidadPuertas + ', asientos: ' + this.asientos;
+            }
+        }
+
+        function ValidarMinimo(numero, minimo,campo) {
+            numeroCasteado = parseInt(numero);
+            if (numeroCasteado > minimo) {
+                return numeroCasteado;
+            }
+        }
+
+        function generarNuevoId(array) {
+            let nuevoID = array.length + 1;
+            while (array.some(item => item.id === nuevoID)) {
+                nuevoID++;
+            }
+            return nuevoID;
+        }
+
+
+        function mostrarSpinner() {
+            document.getElementById("spinner-overlay").classList.add("show");
+        }
+
+        function ocultarSpinner() {
+            document.getElementById("spinner-overlay").classList.remove("show");
+        }
+
+
+        let lista = [];
+        let estadoAceptar = "";
+        function cargarDatos() {
+            
+            mostrarSpinner();
+            const xhr = new XMLHttpRequest();
+            xhr.open("GET", "https://examenesutn.vercel.app/api/VehiculoAutoCamion", true);
+
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4) {
+                    ocultarSpinner(); 
+                    if (xhr.status === 200) {
+                        try {
+                            Vehiculossitem = JSON.parse(xhr.responseText);                
+                            Vehiculossitem.forEach(item => {
+                                if (item.carga !== undefined) {
+                                    item = new Camion(item.id, item.modelo, item.anoFabricacion, item.velMax, item.carga, item.autonomia);
+                                    lista.push(item);
+                                } else {
+                                    item = new Auto(item.id, item.modelo, item.anoFabricacion, item.velMax, item.cantidadPuertas, item.asientos);
+                                    lista.push(item);
+                                }
+                            });
+                            mostrarDatos(lista);
+                        } catch (e) {
+                            console.error("Error al procesar la respuesta de la API:", e);
+                        }
+                    } else {
+                        console.error("Error en la solicitud. Código de estado:", xhr.status);
+                        alert("Error: " + xhr.status + " - No se pudo obtener la lista.");
+                    }
+                }
+            };
+
+            xhr.send();
+        }
+
+        function mostrarDatos(datos) {
+            let tableBody = document.getElementById("tablaDatos").getElementsByTagName("tbody")[0];
+            tableBody.innerHTML = ""; 
+
+            datos.forEach(Vehiculos => {
+                let row = document.createElement("tr");
+                let objeto = JSON.stringify(Vehiculos);
+                row.innerHTML = `
+                    <td>${Vehiculos.id}</td>
+                    <td>${Vehiculos.modelo}</td>
+                    <td>${Vehiculos.anoFabricacion}</td>
+                    <td>${Vehiculos.velMax}</td>
+                    <td>${Vehiculos.autonomia ? Vehiculos.autonomia : "N/A"}</td>
+                    <td>${Vehiculos.carga ? Vehiculos.carga : "N/A"}</td>
+                    <td>${Vehiculos.cantidadPuertas ? Vehiculos.cantidadPuertas : "N/A"}</td>
+                    <td>${Vehiculos.asientos ? Vehiculos.asientos : "N/A"}</td>
+                    <td><button id = modificar onclick="cargarDatosEnFormulario(${Vehiculos.id})">Modificar</button></td>
+                    <td><button id = eliminar onclick="eliminarVehiculos(${Vehiculos.id})">Eliminar</button></td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+    
+
+        async function agregarElemento() {
+            
+            document.getElementById("aceptar").addEventListener("click", async function () {
+                let item = {
+                    modelo: document.getElementById("modelo").value,
+                    anoFabricacion: parseInt(document.getElementById("anoFabricacion").value, 10),
+                    velMax: parseInt(document.getElementById("velMax").value, 10),
+                    autonomia: parseInt(document.getElementById("autonomia").value, 10),
+                    carga: parseInt(document.getElementById("carga").value, 10),
+                    cantidadPuertas: parseInt(document.getElementById("cantidadPuertas").value, 10),
+                    asientos: parseInt(document.getElementById("asientos").value, 10)
+                };
+
+                mostrarSpinner();
+                try {
+                    let response = await fetch("https://examenesutn.vercel.app/api/VehiculoAutoCamion", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify(item)
+                    });
+                    console.log(response.status);
+                    if (response.status == 200) {
+                        const data = await response.json();
+                        item.id = data.id;
+                        console.log("nuevo",item);
+                        lista.push(item); 
+                        mostrarDatos(lista)
+                    } else {
+                        alert("Error en la solicitud. Código de estado: " + response.status);
+                    }
+                } 
+                finally {
+                    ocultarSpinner();
+                    mostrarDatos(lista)
+                    document.getElementById("formularioABM").style.display = "none"; 
+                    document.getElementById("datos").style.display = "block"; 
+                }
+            });
+        }
+
+        function cargarDatosEnFormulario(id) {
+            let vehiculo = lista.find(item => item.id === id); 
+            estadoAceptar = "modificar"
+            if (estadoAceptar) {
+                console.log(vehiculo);
+                document.getElementById("modelo").value = vehiculo.modelo;
+                document.getElementById("anoFabricacion").value = vehiculo.anoFabricacion;
+                document.getElementById("velMax").value = vehiculo.velMax;
+                document.getElementById("autonomia").value = vehiculo.autonomia || "";
+                document.getElementById("carga").value = vehiculo.carga || "";
+                document.getElementById("cantidadPuertas").value = vehiculo.cantidadPuertas || "";
+                document.getElementById("asientos").value = vehiculo.asientos || "";
+
+                document.getElementById("formularioABM").style.display = "block";
+                document.getElementById("datos").style.display = "none";
+            }
+
+            modificarVehiculos(vehiculo);
+        }
+        function modificarVehiculos(vehiculo){
+            
+            document.getElementById("aceptar").addEventListener("click",function () {
+                if(ValidarVehiculos(vehiculo)){
+                    mostrarSpinner();
+                    fetch("https://examenesutn.vercel.app/api/VehiculoAutoCamion", {
+                        method: "PUT",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify(vehiculo)
+                    })
+                    .then(response => {
+                        if (response.status == 200) {
+                            console.log("entra");
+                            vehiculo.modelo = document.getElementById("modelo").value;
+                            vehiculo.anoFabricacion = document.getElementById("anoFabricacion").value;
+                            vehiculo.velMax = document.getElementById("velMax").value ;
+                            vehiculo.autonomia = document.getElementById("autonomia").value ;
+                            vehiculo.carga = document.getElementById("carga").value ;
+                            vehiculo.cantidadPuertas = document.getElementById("cantidadPuertas").value;
+                            vehiculo.asientos = document.getElementById("asientos").value;
+
+                            document.getElementById("formularioABM").style.display = "block";
+                            document.getElementById("datos").style.display = "none";
+                            mostrarDatos(lista);
+                            ocultarSpinner();
+                            document.getElementById("formularioABM").style.display = "none";
+                            document.getElementById("datos").style.display = "block";
+                        } else {
+                            alert("Error al agregar el elemento. Código de estado: " + response.status);
+                            ocultarSpinner();
+                            document.getElementById("formularioABM").style.display = "none";
+                            document.getElementById("datos").style.display = "block";
+                        }
+                    })
+                    .catch(error => {
+                        alert("Hubo un error en la solicitud: " + error.message);
+                        ocultarSpinner();
+                    });
+                    }
+            });
+        }
+
+        function ValidarVehiculos(Vehiculos) {
+            let validation = true;
+
+            modelo = document.getElementById("modelo").value;
+            if (modelo === "") {
+                validation = false;
+            } else {
+                Vehiculos.modelo = modelo;
+            }
+
+            anoFabricacion = ValidarMinimo(document.getElementById("anoFabricacion").value,1985)
+            if (isNaN(anoFabricacion)) {
+                validation = false;
+            } else {
+                Vehiculos.anoFabricacion = anoFabricacion;
+            }
+
+            velMax = ValidarMinimo(document.getElementById("velMax").value,0);
+            if (isNaN(velMax)) {
+                validation = false;
+            } else {
+                Vehiculos.velMax = velMax; 
+            }
+
+            if(Vehiculos instanceof Auto){
+                cantidadPuertas = ValidarMinimo(document.getElementById("cantidadPuertas").value, 2);
+                if (isNaN(cantidadPuertas)) {
+                    validation = false;
+                } else {
+                    Vehiculos.cantidadPuertas = cantidadPuertas;
+                }
+                asientos = ValidarMinimo(document.getElementById("asientos").value, 2);
+                if (asientos === "") {
+                    validation = false;
+                } else {
+                    Vehiculos.asientos = asientos; 
+                }
+            }
+            
+            else{ 
+                carga = ValidarMinimo(document.getElementById("carga").value,0);
+                
+                if (isNaN(carga)) {
+                    validation = false;
+                } else {
+                    Vehiculos.carga = carga;
+                }
+
+                autonomia = ValidarMinimo(document.getElementById("autonomia").value,0);
+                if (isNaN(autonomia)) {
+                    validation = false;
+
+                } else {
+                    Vehiculos.autonomia = autonomia;
+                }        
+            }
+
+            return validation;
+        }
+
+        function cancelar() {
+            document.getElementById("formularioABM").style.display = "none";
+            document.getElementById("datos").style.display = "block";
+        }
+
+        window.onload = cargarDatos;
+        document.getElementById("agregarElemento").addEventListener("click", function () {
+            document.getElementById("datos").style.display = "none";
+            document.getElementById("formularioABM").style.display = "block";
+            document.getElementById("formABM").reset();
+        });
+
+        function eliminarVehiculos(id) {
+            cargarDatosEnFormulario(id); 
+
+            const botonAceptar = document.getElementById("aceptar");
+
+
+            botonAceptar.removeEventListener("click", confirmarEliminacion);
+
+
+            botonAceptar.addEventListener("click", confirmarEliminacion);
+
+            function confirmarEliminacion() {
+                mostrarSpinner();  
+
+                const xhr = new XMLHttpRequest();
+                xhr.open("DELETE", "https://examenesutn.vercel.app/api/VehiculoAutoCamion", true);
+                xhr.setRequestHeader("Content-Type", "application/json");
+
+                xhr.onreadystatechange = function () {
+                    if (xhr.readyState === 4) { 
+                        ocultarSpinner();
+
+                        if (xhr.status === 200) {
+
+                            lista = lista.filter(item => item.id !== id);
+                            mostrarDatos(lista);  
+                            alert("Elemento eliminado con éxito.");
+                            
+                            document.getElementById("formularioABM").style.display = "none";
+                            document.getElementById("datos").style.display = "block";
+                        } else {
+
+                            alert("Error al eliminar el elemento. Código de estado: " + xhr.status);
+                        }
+                    }
+                };
+                xhr.send(JSON.stringify({ id: id }));
+            }
+        }
+
+
+
+        document.getElementById("agregarElemento").addEventListener("click",function(){
+            estadoAceptar= "agregar"
+        });
+
+        document.getElementById("aceptar").addEventListener("click",  function () {
+            if (estadoAceptar == "modificar") {
+                modificarVehiculos(estadoAceptar);
+            } else if (estadoAceptar == "agregar"){
+                agregarElemento();
+            }
+        });
+
+    </script>
+</body>
+</html>
